@@ -110,8 +110,12 @@ def calculate_forecast(data: pd.DataFrame, periods: int) -> pd.DataFrame:
 | ---------------------- | ------------ |
 | Package management     | `uv`         |
 | Environment management | `uv`         |
+| Running scripts        | `uv`         |
+| Running tests          | `uv`         |
 | Visualization          | Dash         |
 | Testing                | pytest       |
+
+**Important:** Do NOT use `python` or `python3` commands. Always use `uv run` for executing Python scripts and modules.
 
 ---
 
