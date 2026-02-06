@@ -6,12 +6,12 @@
 
 ### Reference Documentation
 
-Before implementing, consult these reference files that summarize the data preprocessing and postprocessing steps of the ProphetApproach:
+When in need for information regarding the datapipelines from the ProphetApproach, please refer to the following documentation files:
 
 - [`preprocessing_baseline_reference.md`](../preprocessing_baseline_reference.md) — Data processing steps
 - [`data_storage_and_metrics_reference.md`](../data_storage_and_metrics_reference.md) — Postprocessing steps
 
----
+## If things remain unclear, please ask for clarification before proceeding.
 
 ## Code Reuse Guidelines
 
@@ -133,3 +133,5 @@ Use the GitNexus MCP server to explore and understand the ProphetApproach codeba
 ## Communication
 
 > **When in doubt, ask.** Always request clarification before proceeding if requirements are unclear.
+
+
