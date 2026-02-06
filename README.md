@@ -26,7 +26,16 @@ Compare a TabPFN-based forecasting method with the existing in-house ProphetAppr
 - CLI interface
 - 41 additional tests passing
 
-🔄 **Phase 3: Postprocessing & Metrics** - TODO
+✅ **Phase 3: Metrics Computation** - COMPLETE
+
+- 7 forecast accuracy metrics (MAPE, SMAPE, RMSSE, NRMSE, WAPE, SWAPE, PBIAS)
+- Seasonal naive baseline generation
+- Multi-level aggregation (net_income, total_activity, account_type, forecast_type)
+- Result loader (CSV + encoded formats)
+- End-to-end pipeline with error handling
+- CLI interface for single/batch processing
+- 68 additional tests passing
+
 🔄 **Phase 4: Visualization Dashboard** - TODO
 
 ## 🏗️ Architecture
@@ -44,8 +53,15 @@ TabPFNApproach/
 │   │   ├── batch_processor.py     # Batch forecasting orchestration
 │   │   ├── cli.py                 # Command-line interface
 │   │   └── __main__.py            # Module entry point
-│   └── postprocessing/    # Metrics and results (TODO)
-├── tests/                 # Test suite (82 tests)
+│   ├── metrics/           # Metrics computation
+│   │   ├── compute_metrics.py     # 7 core metrics (MAPE, SMAPE, etc.)
+│   │   ├── seasonal_naive.py      # Baseline generator for RMSSE
+│   │   ├── aggregation.py         # Multi-level aggregation
+│   │   ├── result_loader.py       # Load gather_result files
+│   │   ├── pipeline.py            # End-to-end orchestration
+│   │   └── cli.py                 # Command-line interface
+│   └── postprocessing/    # Visualization & reconciliation (TODO)
+├── tests/                 # Test suite (150 tests)
 ├── data/                  # Company data (FEC files)
 ├── tabpfn-time-series/    # Local TabPFN package
 └── docs/                  # Documentation
@@ -85,6 +101,40 @@ uv run python -m src.forecasting --companies "RESTO - 1" --tabpfn-mode client
 # Custom forecast horizon
 uv run python -m src.forecasting --companies "RESTO - 1" --forecast-horizon 24
 ```
+
+#### Computing Metrics (CLI)
+
+```bash
+# Compute metrics for a single company and process
+uv run python -m src.metrics.cli --company_id "RESTO - 1" --process_id "736a9918-fad3-40da-bab5-851a0bcbb270"
+
+# Compute metrics for all companies with missing metrics
+
+uv run python -m src.metrics.cli --all
+
+# Custom forecast horizon (default: 12)
+
+uv run python -m src.metrics.cli --company_id "RESTO - 1" --forecast_horizon 24
+
+```
+
+**Metrics Computed:**
+
+- **MAPE** (Mean Absolute Percentage Error) - Average % error
+- **SMAPE** (Symmetric MAPE) - Symmetric version avoiding division by zero
+- **RMSSE** (Root Mean Squared Scaled Error) - Error scaled by seasonal naive baseline
+- **NRMSE** (Normalized RMSE) - RMSE normalized by actual range
+- **WAPE** (Weighted Absolute Percentage Error) - Total error weighted by actuals
+- **SWAPE** (Symmetric WAPE) - Symmetric weighted version
+- **PBIAS** (Percent Bias) - Systematic over/under-forecasting detection
+
+**Aggregation Levels:**
+
+- Per account (e.g., `707000`, `601000`)
+- Net Income (`70x - 60x`)
+- Total Activity (sum of all accounts)
+- By Account Type (fixed, variable, revenue)
+- By Forecast Type (direct vs carried-forward)
 
 #### Preprocessing (Programmatic)
 
@@ -149,11 +199,6 @@ uv run pytest tests/unit/data/test_preprocessing.py -v
 - ✅ Account classification (fixed, variable, revenue)
 - ✅ COVID period handling (configurable)
 - ✅ Train/test splitting
-- ✅ Wide-format transformation
-- ✅ Active account filtering
-
-### Forecasting
-
 - ✅ TabPFN model integration (LOCAL & CLIENT modes)
 - ✅ Wide ↔ TabPFN format conversion
 - ✅ Multi-account forecasting (batch processing)
@@ -163,9 +208,24 @@ uv run pytest tests/unit/data/test_preprocessing.py -v
 - ✅ CLI interface
 - ✅ Company discovery and filtering
 
+### Metrics Computation
+
+- ✅ 7 accuracy metrics (MAPE, SMAPE, RMSSE, NRMSE, WAPE, SWAPE, PBIAS)
+- ✅ Seasonal naive baseline generation (for RMSSE)
+- ✅ Multi-level aggregation (net_income, total_activity, by type)
+- ✅ Result loader (CSV + pickle-encoded formats)
+- ✅ End-to-end pipeline with validation
+- ✅ Batch processing with error handling
+- ✅ CLI interface
+
+### Visualization Dashboard (TODO)
+
+- ⏳ Interactive dashboard for forecast comparison
+- ⏳ Time series visualization
+- ⏳ Metrics comparison tables
+
 ### Postprocessing (TODO)
 
-- ⏳ Metrics computation (MAPE, SMAPE, RMSSE, etc.)
 - ⏳ Result comparison with ProphetApproach
 - ⏳ Hierarchical reconciliation
 
@@ -237,6 +297,6 @@ Follow the project's TDD workflow and coding standards (see [.github/copilot-ins
 
 ---
 
-**Current Status**: Phase 2 Complete (TabPFN Forecasting)  
-**Next Phase**: Postprocessing & Metrics Implementation  
-**Test Coverage**: 82 tests passing
+**Current Status**: Phase 3 Complete (Metrics Computation)  
+**Next Phase**: Visualization Dashboard  
+**Test Coverage**: 150 tests passing (100% success rate)
