@@ -1,6 +1,6 @@
 # TabPFNApproach
 
-A new forecasting approach for financial time series using TabPFN (Tabular Prior Fitted Networks) to compare with the existing ProphetApproach.
+A forecasting approach for financial time series using TabPFN (Tabular Prior Fitted Networks) to compare with the existing ProphetApproach.
 
 ## 🎯 Project Goal
 
@@ -14,9 +14,18 @@ Compare a TabPFN-based forecasting method with the existing in-house ProphetAppr
 - Account classification
 - Data transformation to wide format
 - COVID period handling
-- 41/41 tests passing
+- 41 tests passing
 
-🔄 **Phase 2: TabPFN Forecasting** - TODO
+✅ **Phase 2: TabPFN Forecasting** - COMPLETE
+
+- Data format conversion (wide ↔ TabPFN)
+- TabPFN forecaster integration (LOCAL/CLIENT modes)
+- Result saving and metadata updates
+- Company discovery and filtering
+- Batch processing with progress tracking
+- CLI interface
+- 41 additional tests passing
+
 🔄 **Phase 3: Postprocessing & Metrics** - TODO
 🔄 **Phase 4: Visualization Dashboard** - TODO
 
@@ -25,13 +34,21 @@ Compare a TabPFN-based forecasting method with the existing in-house ProphetAppr
 ```
 TabPFNApproach/
 ├── src/
-│   ├── config/          # Configuration parameters
-│   ├── data/            # Data loading and preprocessing
-│   ├── forecasting/     # TabPFN forecasting (TODO)
-│   └── postprocessing/  # Metrics and results (TODO)
-├── tests/               # Test suite (41 tests)
-├── data/                # Company data (FEC files)
-└── docs/                # Documentation
+│   ├── config/            # Configuration parameters
+│   ├── data/              # Data loading and preprocessing
+│   ├── forecasting/       # TabPFN forecasting pipeline
+│   │   ├── data_converter.py      # Wide ↔ TabPFN format conversion
+│   │   ├── tabpfn_forecaster.py   # TabPFN wrapper
+│   │   ├── result_saver.py        # Save results & metadata
+│   │   ├── company_discovery.py   # Company folder discovery
+│   │   ├── batch_processor.py     # Batch forecasting orchestration
+│   │   ├── cli.py                 # Command-line interface
+│   │   └── __main__.py            # Module entry point
+│   └── postprocessing/    # Metrics and results (TODO)
+├── tests/                 # Test suite (82 tests)
+├── data/                  # Company data (FEC files)
+├── tabpfn-time-series/    # Local TabPFN package
+└── docs/                  # Documentation
 ```
 
 ## 🚀 Quick Start
@@ -46,6 +63,30 @@ uv sync --extra dev
 ```
 
 ### Usage
+
+#### Running Forecasts (CLI)
+
+```bash
+# Run forecast on a single company
+uv run python -m src.forecasting --companies "RESTO - 1"
+
+# Run forecasts on multiple companies
+uv run python -m src.forecasting --companies "RESTO - 1" "RESTO - 2"
+
+# Run forecasts on all companies (68 total)
+uv run python -m src.forecasting --companies all
+
+# Preview companies without running forecasts
+uv run python -m src.forecasting --companies all --dry-run
+
+# Use TabPFN CLIENT mode (cloud API, faster)
+uv run python -m src.forecasting --companies "RESTO - 1" --tabpfn-mode client
+
+# Custom forecast horizon
+uv run python -m src.forecasting --companies "RESTO - 1" --forecast-horizon 24
+```
+
+#### Preprocessing (Programmatic)
 
 ```python
 from src.data.fec_loader import load_fecs
@@ -111,16 +152,21 @@ uv run pytest tests/unit/data/test_preprocessing.py -v
 - ✅ Wide-format transformation
 - ✅ Active account filtering
 
-### Forecasting (TODO)
+### Forecasting
 
-- ⏳ TabPFN model integration
-- ⏳ Feature engineering
-- ⏳ Forecasting interface
+- ✅ TabPFN model integration (LOCAL & CLIENT modes)
+- ✅ Wide ↔ TabPFN format conversion
+- ✅ Multi-account forecasting (batch processing)
+- ✅ Result storage (gather_result format)
+- ✅ Metadata tracking (company.json updates)
+- ✅ Progress tracking with rich console
+- ✅ CLI interface
+- ✅ Company discovery and filtering
 
 ### Postprocessing (TODO)
 
 - ⏳ Metrics computation (MAPE, SMAPE, RMSSE, etc.)
-- ⏳ Result storage and comparison
+- ⏳ Result comparison with ProphetApproach
 - ⏳ Hierarchical reconciliation
 
 ## 📋 Requirements
@@ -128,9 +174,22 @@ uv run pytest tests/unit/data/test_preprocessing.py -v
 - Python >= 3.10
 - pandas >= 2.0.0
 - numpy >= 1.24.0
+- tabpfn >= 6.0.6
+- gluonts >= 0.16.0
+- statsmodels >= 0.14.5
+- rich >= 13.0.0
 - pytest >= 7.0.0 (dev)
 
 See [pyproject.toml](pyproject.toml) for complete dependencies.
+
+## ⚡ Performance
+
+**Expected Runtime (LOCAL mode)**:
+
+- Single company (RESTO-1): ~7-8 minutes (74 accounts)
+- All companies (68): ~8-9 hours
+
+**TabPFN CLIENT mode** (cloud API) is significantly faster but requires an API key.
 
 ## 🎯 Design Principles
 
@@ -178,5 +237,6 @@ Follow the project's TDD workflow and coding standards (see [.github/copilot-ins
 
 ---
 
-**Current Status**: Phase 1 Complete (Data Preprocessing)  
-**Next Phase**: TabPFN Forecasting Implementation
+**Current Status**: Phase 2 Complete (TabPFN Forecasting)  
+**Next Phase**: Postprocessing & Metrics Implementation  
+**Test Coverage**: 82 tests passing
