@@ -8,6 +8,7 @@ dependencies = [
     "pandas>=2.0.0",
     "numpy>=1.24.0",
     "tabpfn>=6.0.6",
+    "tabpfn-time-series>=1.0.8",
     "gluonts>=0.16.0",
     "statsmodels>=0.14.5",
     "rich>=13.0.0",
