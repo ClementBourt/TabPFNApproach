@@ -17,6 +17,7 @@ def mock_dependencies():
          patch('src.forecasting.batch_processor.preprocess_data') as mock_preprocess, \
          patch('src.forecasting.batch_processor.TabPFNForecaster') as mock_forecaster, \
          patch('src.forecasting.batch_processor.save_forecast_result') as mock_save, \
+         patch('src.forecasting.batch_processor.save_forecast_result_with_ci') as mock_save_ci, \
          patch('src.forecasting.batch_processor.update_company_metadata') as mock_update, \
          patch('src.forecasting.batch_processor.get_company_info') as mock_info:
         
@@ -53,6 +54,14 @@ def mock_dependencies():
             '601000': [550.0] * 12
         }, index=forecast_dates)
         forecast_result.forecast_df.index.name = 'ds'
+        forecast_result.forecast_lower_df = pd.DataFrame({
+            '707000': [1050.0] * 12,
+            '601000': [500.0] * 12
+        }, index=forecast_dates)
+        forecast_result.forecast_upper_df = pd.DataFrame({
+            '707000': [1150.0] * 12,
+            '601000': [600.0] * 12
+        }, index=forecast_dates)
         forecaster_instance.forecast.return_value = forecast_result
         mock_forecaster.return_value = forecaster_instance
         
@@ -65,6 +74,7 @@ def mock_dependencies():
             'preprocess': mock_preprocess,
             'forecaster': mock_forecaster,
             'save': mock_save,
+            'save_ci': mock_save_ci,
             'update': mock_update,
             'info': mock_info
         }
@@ -99,12 +109,13 @@ def test_process_company_successful(mock_dependencies):
     assert result['accounts_forecasted'] == 2
 
 
-def test_process_company_calls_save_forecast_result(mock_dependencies):
-    """Test that save_forecast_result is called."""
+def test_process_company_calls_save_forecast_result_with_ci(mock_dependencies):
+    """Test that save_forecast_result_with_ci is called when CI data is available."""
     processor = BatchProcessor(mode='local')
     processor.process_company('TEST-COMPANY')
     
-    mock_dependencies['save'].assert_called_once()
+    mock_dependencies['save_ci'].assert_called_once()
+    mock_dependencies['save'].assert_not_called()
 
 
 def test_process_company_calls_update_company_metadata(mock_dependencies):

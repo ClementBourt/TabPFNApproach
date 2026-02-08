@@ -67,7 +67,7 @@ def main():
             )
             print("✓ Metrics computed successfully")
             print(f"  - Accounts with metrics: {len(metrics['account_metrics'])}")
-            print(f"  - Aggregated metrics: net_income, total_activity, account_type, forecast_type")
+            print(f"  - Aggregated metrics: net_income, account_type, forecast_type")
             
             # Show sample metric values
             if metrics['aggregated_metrics'].get('net_income'):

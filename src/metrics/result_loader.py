@@ -111,3 +111,59 @@ def load_gather_result(file_path: Union[str, Path]) -> pd.DataFrame:
             f"Could not parse {file_path} as either base64+pickle or CSV format. "
             f"Error: {e}"
         )
+
+
+def load_confidence_intervals(
+    process_folder: Union[str, Path]
+) -> tuple[Union[pd.DataFrame, None], Union[pd.DataFrame, None]]:
+    """
+    Load confidence interval files (lower and upper bounds) if they exist.
+    
+    Attempts to load gather_result_lower and gather_result_upper from the
+    process folder. Returns None for each file that doesn't exist (e.g., for
+    Prophet forecasts which don't have confidence intervals in this format).
+    
+    Parameters
+    ----------
+    process_folder : Union[str, Path]
+        Path to the process folder containing gather_result files.
+    
+    Returns
+    -------
+    tuple[Union[pd.DataFrame, None], Union[pd.DataFrame, None]]
+        (lower_df, upper_df) - DataFrames for lower and upper bounds,
+        or None if files don't exist.
+    
+    Examples
+    --------
+    >>> lower, upper = load_confidence_intervals('data/RESTO - 1/process-id/')
+    >>> if lower is not None:
+    ...     print(f"Lower bound shape: {lower.shape}")
+    >>> if upper is None:
+    ...     print("No confidence intervals available")
+    """
+    process_folder = Path(process_folder)
+    
+    lower_path = process_folder / "gather_result_lower"
+    upper_path = process_folder / "gather_result_upper"
+    
+    # Try to load lower bound
+    lower_df = None
+    if lower_path.exists():
+        try:
+            lower_df = load_gather_result(lower_path)
+        except Exception:
+            # If loading fails, treat as missing
+            lower_df = None
+    
+    # Try to load upper bound
+    upper_df = None
+    if upper_path.exists():
+        try:
+            upper_df = load_gather_result(upper_path)
+        except Exception:
+            # If loading fails, treat as missing
+            upper_df = None
+    
+    return lower_df, upper_df
+

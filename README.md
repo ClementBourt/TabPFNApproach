@@ -30,13 +30,22 @@ Compare a TabPFN-based forecasting method with the existing in-house ProphetAppr
 
 - 7 forecast accuracy metrics (MAPE, SMAPE, RMSSE, NRMSE, WAPE, SWAPE, PBIAS)
 - Seasonal naive baseline generation
-- Multi-level aggregation (net_income, total_activity, account_type, forecast_type)
+- Multi-level aggregation (net_income, account_type, forecast_type)
 - Result loader (CSV + encoded formats)
 - End-to-end pipeline with error handling
 - CLI interface for single/batch processing
 - 68 additional tests passing
 
-🔄 **Phase 4: Visualization Dashboard** - TODO
+✅ **Phase 4: Visualization Dashboard** - COMPLETE
+
+- Interactive Dash dashboard for forecast comparison
+- Time series charts (train, test, forecasts)
+- Metrics comparison tables
+- Individual account and aggregated views
+- Responsive Bootstrap UI
+- 25 additional tests passing
+
+🔄 **Next: Multi-company support & additional analysis**
 
 ## 🏗️ Architecture
 
@@ -60,8 +69,15 @@ TabPFNApproach/
 │   │   ├── result_loader.py       # Load gather_result files
 │   │   ├── pipeline.py            # End-to-end orchestration
 │   │   └── cli.py                 # Command-line interface
-│   └── postprocessing/    # Visualization & reconciliation (TODO)
-├── tests/                 # Test suite (150 tests)
+│   ├── visualization/     # Interactive dashboard
+│   │   ├── app.py                 # Main Dash application
+│   │   ├── cli.py                 # Dashboard CLI
+│   │   ├── layouts.py             # Dashboard layout
+│   │   ├── callbacks.py           # Interactive callbacks
+│   │   ├── data_loader.py         # Data loading utilities
+│   │   └── components/            # Reusable UI components
+│   └── postprocessing/    # Result reconciliation (TODO)
+├── tests/                 # Test suite (175 tests)
 ├── data/                  # Company data (FEC files)
 ├── tabpfn-time-series/    # Local TabPFN package
 └── docs/                  # Documentation
@@ -104,9 +120,33 @@ uv run python -m src.forecasting --companies "RESTO - 1" --forecast-horizon 24
 
 #### Computing Metrics (CLI)
 
-```bash
+````bash
 # Compute metrics for a single company and process
-uv run python -m src.metrics.cli --company_id "RESTO - 1" --process_id "736a9918-fad3-40da-bab5-851a0bcbb270"
+uv
+
+#### Running Dashboard (CLI)
+
+```bash
+# Run dashboard for RESTO - 1 (default)
+uv run python -m src.visualization.cli dashboard
+
+# Run dashboard for a specific company
+uv run python -m src.visualization.cli dashboard --company "RESTO - 2"
+
+# Run on custom port
+uv run python -m src.visualization.cli dashboard --port 8080
+
+# Access at: http://localhost:8050
+````
+
+**Dashboard Features:**
+
+- **Time Series Chart**: Compare train data, test data, TabPFN forecast, and Prophet forecast
+- **Account Selector**: View individual accounts or aggregated views (Net Income, Total Revenue, Total Expenses)
+- **Metrics Table**: Side-by-side comparison of all 7 metrics for both approaches
+- **Interactive**: Built with Dash and Plotly for responsive visualization
+
+See [DASHBOARD_README.md](DASHBOARD_README.md) for detailed dashboard documentation.run python -m src.metrics.cli --company_id "RESTO - 1" --process_id "736a9918-fad3-40da-bab5-851a0bcbb270"
 
 # Compute metrics for all companies with missing metrics
 
@@ -116,7 +156,7 @@ uv run python -m src.metrics.cli --all
 
 uv run python -m src.metrics.cli --company_id "RESTO - 1" --forecast_horizon 24
 
-```
+````
 
 **Metrics Computed:**
 
@@ -132,7 +172,6 @@ uv run python -m src.metrics.cli --company_id "RESTO - 1" --forecast_horizon 24
 
 - Per account (e.g., `707000`, `601000`)
 - Net Income (`70x - 60x`)
-- Total Activity (sum of all accounts)
 - By Account Type (fixed, variable, revenue)
 - By Forecast Type (direct vs carried-forward)
 
@@ -169,7 +208,7 @@ result = preprocess_data(
 # Access results
 print(f"Forecastable accounts: {len(result.forecastable_accounts)}")
 print(f"Data shape: {result.filtered_data_wide_format.shape}")
-```
+````
 
 ## 🧪 Testing
 
@@ -186,6 +225,7 @@ uv run pytest tests/unit/data/test_preprocessing.py -v
 
 ## 📚 Documentation
 
+- [DASHBOARD_README.md](DASHBOARD_README.md) - Dashboard usage and architecture
 - [PREPROCESSING_README.md](PREPROCESSING_README.md) - Preprocessing module documentation
 - [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) - Current implementation status
 - [preprocessing_baseline_reference.md](preprocessing_baseline_reference.md) - ProphetApproach preprocessing reference
@@ -199,6 +239,24 @@ uv run pytest tests/unit/data/test_preprocessing.py -v
 - ✅ Account classification (fixed, variable, revenue)
 - ✅ COVID period handling (configurable)
 - ✅ Train/test splitting
+- ✅ Visualization Dashboard
+
+- ✅ Interactive Dash application
+- ✅ Time series comparison charts
+- ✅ Side-by-side metrics tables
+- ✅ Individual account and aggregated views
+- ✅ Responsive Bootstrap UI
+- ✅ Full test coverage
+
+### Postprocessing (TODO)
+
+- ⏳ Multi-company dashboard support
+- ⏳ Error distribution analysis
+- ⏳ Historical performance tracking
+- ⏳ Hierarchical reconciliation
+- dash >= 2.14.0
+- dash-bootstrap-components >= 1.5.0
+- plotly >= 5.18.0
 - ✅ TabPFN model integration (LOCAL & CLIENT modes)
 - ✅ Wide ↔ TabPFN format conversion
 - ✅ Multi-account forecasting (batch processing)
@@ -212,22 +270,17 @@ uv run pytest tests/unit/data/test_preprocessing.py -v
 
 - ✅ 7 accuracy metrics (MAPE, SMAPE, RMSSE, NRMSE, WAPE, SWAPE, PBIAS)
 - ✅ Seasonal naive baseline generation (for RMSSE)
-- ✅ Multi-level aggregation (net_income, total_activity, by type)
+- ✅ Multi-level aggregation (net_income, by type)
 - ✅ Result loader (CSV + pickle-encoded formats)
 - ✅ End-to-end pipeline with validation
 - ✅ Batch processing with error handling
 - ✅ CLI interface
 
-### Visualization Dashboard (TODO)
-
-- ⏳ Interactive dashboard for forecast comparison
-- ⏳ Time series visualization
-- ⏳ Metrics comparison tables
-
 ### Postprocessing (TODO)
 
 - ⏳ Result comparison with ProphetApproach
 - ⏳ Hierarchical reconciliation
+- ⏳ Visualization dashboard
 
 ## 📋 Requirements
 
@@ -298,5 +351,5 @@ Follow the project's TDD workflow and coding standards (see [.github/copilot-ins
 ---
 
 **Current Status**: Phase 3 Complete (Metrics Computation)  
-**Next Phase**: Visualization Dashboard  
+**Next Phase**: Postprocessing & Visualization  
 **Test Coverage**: 150 tests passing (100% success rate)

@@ -62,6 +62,80 @@ def save_forecast_result(
     return gather_result_path
 
 
+def save_forecast_result_with_ci(
+    median_df: pd.DataFrame,
+    lower_df: pd.DataFrame,
+    upper_df: pd.DataFrame,
+    company_id: str,
+    process_id: str,
+    data_folder: str = "data"
+) -> tuple[Path, Path, Path]:
+    """
+    Save forecast results with confidence intervals to three separate files.
+    
+    Creates the process directory if it doesn't exist and saves three DataFrames:
+    - gather_result: Median forecast (50th percentile)
+    - gather_result_lower: Lower bound (10th percentile)
+    - gather_result_upper: Upper bound (90th percentile)
+    
+    Parameters
+    ----------
+    median_df : pd.DataFrame
+        Median forecast DataFrame with:
+        - Index: DatetimeIndex (ds)
+        - Columns: Account numbers as strings
+        - Values: Forecasted monthly amounts (median/50th percentile)
+    lower_df : pd.DataFrame
+        Lower bound forecast DataFrame (10th percentile).
+        Must have same structure as median_df.
+    upper_df : pd.DataFrame
+        Upper bound forecast DataFrame (90th percentile).
+        Must have same structure as median_df.
+    company_id : str
+        Company identifier.
+    process_id : str
+        Unique process identifier for this forecast run.
+    data_folder : str, default="data"
+        Root data folder path.
+    
+    Returns
+    -------
+    tuple[Path, Path, Path]
+        Paths to the three saved files: (median_path, lower_path, upper_path).
+    
+    Examples
+    --------
+    >>> dates = pd.date_range('2025-01-01', periods=12, freq='MS')
+    >>> median_df = pd.DataFrame({'707000': [1000.0] * 12}, index=dates)
+    >>> lower_df = pd.DataFrame({'707000': [900.0] * 12}, index=dates)
+    >>> upper_df = pd.DataFrame({'707000': [1100.0] * 12}, index=dates)
+    >>> for df in [median_df, lower_df, upper_df]:
+    ...     df.index.name = 'ds'
+    >>> paths = save_forecast_result_with_ci(
+    ...     median_df, lower_df, upper_df, 'RESTO - 1', 'abc-123'
+    ... )
+    >>> all(p.exists() for p in paths)
+    True
+    """
+    # Create process directory
+    process_folder = Path(data_folder) / company_id / process_id
+    process_folder.mkdir(parents=True, exist_ok=True)
+    
+    # Save median forecast (main gather_result)
+    median_path = process_folder / "gather_result"
+    median_df.to_csv(median_path)
+    
+    # Save lower bound
+    lower_path = process_folder / "gather_result_lower"
+    lower_df.to_csv(lower_path)
+    
+    # Save upper bound
+    upper_path = process_folder / "gather_result_upper"
+    upper_df.to_csv(upper_path)
+    
+    return median_path, lower_path, upper_path
+
+
 def update_company_metadata(
     company_id: str,
     process_id: str,

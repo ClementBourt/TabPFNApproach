@@ -7,7 +7,7 @@ handling data format conversions and providing a simple API for forecasting.
 
 import time
 from dataclasses import dataclass
-from typing import List, Literal
+from typing import List, Literal, Optional
 
 import pandas as pd
 from tabpfn_time_series import TabPFNTSPipeline, TabPFNMode
@@ -15,6 +15,7 @@ from tabpfn_time_series import TabPFNTSPipeline, TabPFNMode
 from src.forecasting.data_converter import (
     wide_to_tabpfn_format,
     tabpfn_output_to_wide_format,
+    extract_quantiles_from_tabpfn_output,
 )
 
 
@@ -27,6 +28,10 @@ class ForecastResult:
     ----------
     forecast_df : pd.DataFrame
         Wide-format DataFrame with forecast results (ds index × account columns).
+    forecast_lower_df : Optional[pd.DataFrame]
+        Wide-format lower bound DataFrame (10th percentile) or None if unavailable.
+    forecast_upper_df : Optional[pd.DataFrame]
+        Wide-format upper bound DataFrame (90th percentile) or None if unavailable.
     accounts : List[str]
         List of account numbers that were forecasted.
     prediction_length : int
@@ -36,6 +41,8 @@ class ForecastResult:
     """
     
     forecast_df: pd.DataFrame
+    forecast_lower_df: Optional[pd.DataFrame]
+    forecast_upper_df: Optional[pd.DataFrame]
     accounts: List[str]
     prediction_length: int
     elapsed_time: float
@@ -154,14 +161,24 @@ class TabPFNForecaster:
             quantiles=quantiles
         )
         
-        # Convert back to wide format
-        forecast_df = tabpfn_output_to_wide_format(tabpfn_output, accounts)
+        # Convert back to wide format (with quantiles if available)
+        try:
+            forecast_df, lower_df, upper_df = extract_quantiles_from_tabpfn_output(
+                tabpfn_output,
+                accounts
+            )
+        except KeyError:
+            forecast_df = tabpfn_output_to_wide_format(tabpfn_output, accounts)
+            lower_df = None
+            upper_df = None
         
         # Calculate elapsed time
         elapsed_time = time.time() - start_time
         
         return ForecastResult(
             forecast_df=forecast_df,
+            forecast_lower_df=lower_df,
+            forecast_upper_df=upper_df,
             accounts=accounts,
             prediction_length=prediction_length,
             elapsed_time=elapsed_time

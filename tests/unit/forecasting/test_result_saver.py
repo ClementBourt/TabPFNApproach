@@ -10,6 +10,7 @@ import pandas as pd
 import pytest
 from src.forecasting.result_saver import (
     save_forecast_result,
+    save_forecast_result_with_ci,
     update_company_metadata,
 )
 
@@ -248,3 +249,152 @@ def test_update_company_metadata_appends_to_existing_versions(temp_data_folder):
     assert len(company_data['forecast_versions']) == 2
     assert company_data['forecast_versions'][0]['process_id'] == "process-1"
     assert company_data['forecast_versions'][1]['process_id'] == "process-2"
+
+
+# =============================================================================
+# Tests for saving confidence intervals (Step 3)
+# =============================================================================
+
+
+@pytest.fixture
+def sample_forecast_with_ci():
+    """
+    Create sample forecast DataFrames with confidence intervals.
+    
+    Returns
+    -------
+    tuple
+        (median_df, lower_df, upper_df) - Three DataFrames in gather_result format.
+    """
+    dates = pd.date_range('2025-01-01', periods=12, freq='MS')
+    
+    # Median forecast
+    median_data = {
+        '707000': [1000.0 + i * 100 for i in range(12)],
+        '601000': [500.0 + i * 50 for i in range(12)],
+    }
+    median_df = pd.DataFrame(median_data, index=dates)
+    median_df.index.name = 'ds'
+    
+    # Lower bound (10th percentile)
+    lower_data = {
+        '707000': [900.0 + i * 100 for i in range(12)],
+        '601000': [450.0 + i * 50 for i in range(12)],
+    }
+    lower_df = pd.DataFrame(lower_data, index=dates)
+    lower_df.index.name = 'ds'
+    
+    # Upper bound (90th percentile)
+    upper_data = {
+        '707000': [1100.0 + i * 100 for i in range(12)],
+        '601000': [550.0 + i * 50 for i in range(12)],
+    }
+    upper_df = pd.DataFrame(upper_data, index=dates)
+    upper_df.index.name = 'ds'
+    
+    return median_df, lower_df, upper_df
+
+
+def test_save_forecast_result_with_ci_creates_all_files(sample_forecast_with_ci, temp_data_folder):
+    """Test that all three files (median, lower, upper) are created."""
+    median_df, lower_df, upper_df = sample_forecast_with_ci
+    process_id = "test-process-with-ci"
+    
+    save_forecast_result_with_ci(
+        median_df=median_df,
+        lower_df=lower_df,
+        upper_df=upper_df,
+        company_id="TEST-COMPANY",
+        process_id=process_id,
+        data_folder=temp_data_folder
+    )
+    
+    process_folder = Path(temp_data_folder) / "TEST-COMPANY" / process_id
+    
+    assert (process_folder / "gather_result").exists()
+    assert (process_folder / "gather_result_lower").exists()
+    assert (process_folder / "gather_result_upper").exists()
+
+
+def test_save_forecast_result_with_ci_correct_format(sample_forecast_with_ci, temp_data_folder):
+    """Test that all files have correct CSV format."""
+    median_df, lower_df, upper_df = sample_forecast_with_ci
+    process_id = "test-process-with-ci"
+    
+    save_forecast_result_with_ci(
+        median_df=median_df,
+        lower_df=lower_df,
+        upper_df=upper_df,
+        company_id="TEST-COMPANY",
+        process_id=process_id,
+        data_folder=temp_data_folder
+    )
+    
+    process_folder = Path(temp_data_folder) / "TEST-COMPANY" / process_id
+    
+    # Read back and verify shapes
+    loaded_median = pd.read_csv(process_folder / "gather_result", index_col=0, parse_dates=[0])
+    loaded_lower = pd.read_csv(process_folder / "gather_result_lower", index_col=0, parse_dates=[0])
+    loaded_upper = pd.read_csv(process_folder / "gather_result_upper", index_col=0, parse_dates=[0])
+    
+    assert loaded_median.shape == median_df.shape
+    assert loaded_lower.shape == lower_df.shape
+    assert loaded_upper.shape == upper_df.shape
+
+
+def test_save_forecast_result_with_ci_preserves_data(sample_forecast_with_ci, temp_data_folder):
+    """Test that data is preserved accurately in all three files."""
+    median_df, lower_df, upper_df = sample_forecast_with_ci
+    process_id = "test-process-with-ci"
+    
+    save_forecast_result_with_ci(
+        median_df=median_df,
+        lower_df=lower_df,
+        upper_df=upper_df,
+        company_id="TEST-COMPANY",
+        process_id=process_id,
+        data_folder=temp_data_folder
+    )
+    
+    process_folder = Path(temp_data_folder) / "TEST-COMPANY" / process_id
+    
+    loaded_median = pd.read_csv(process_folder / "gather_result", index_col=0, parse_dates=[0])
+    loaded_lower = pd.read_csv(process_folder / "gather_result_lower", index_col=0, parse_dates=[0])
+    loaded_upper = pd.read_csv(process_folder / "gather_result_upper", index_col=0, parse_dates=[0])
+    
+    # Check median values
+    assert loaded_median.iloc[0]['707000'] == 1000.0
+    assert loaded_median.iloc[-1]['601000'] == 1050.0
+    
+    # Check lower bound values
+    assert loaded_lower.iloc[0]['707000'] == 900.0
+    assert loaded_lower.iloc[-1]['601000'] == 1000.0
+    
+    # Check upper bound values
+    assert loaded_upper.iloc[0]['707000'] == 1100.0
+    assert loaded_upper.iloc[-1]['601000'] == 1100.0
+
+
+def test_save_forecast_result_with_ci_same_columns(sample_forecast_with_ci, temp_data_folder):
+    """Test that all three files have the same columns."""
+    median_df, lower_df, upper_df = sample_forecast_with_ci
+    process_id = "test-process-with-ci"
+    
+    save_forecast_result_with_ci(
+        median_df=median_df,
+        lower_df=lower_df,
+        upper_df=upper_df,
+        company_id="TEST-COMPANY",
+        process_id=process_id,
+        data_folder=temp_data_folder
+    )
+    
+    process_folder = Path(temp_data_folder) / "TEST-COMPANY" / process_id
+    
+    loaded_median = pd.read_csv(process_folder / "gather_result", index_col=0, parse_dates=[0])
+    loaded_lower = pd.read_csv(process_folder / "gather_result_lower", index_col=0, parse_dates=[0])
+    loaded_upper = pd.read_csv(process_folder / "gather_result_upper", index_col=0, parse_dates=[0])
+    
+    assert list(loaded_median.columns) == list(loaded_lower.columns)
+    assert list(loaded_median.columns) == list(loaded_upper.columns)
+

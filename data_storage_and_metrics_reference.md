@@ -313,15 +313,6 @@ def save_gather_results(self, forecasts_df, meta_data):
             "SWAPE": 196.52,
             "PBIAS": 162.16
         },
-        "total_activity": {
-            "MAPE": 88.16,
-            "SMAPE": 150.83,
-            "RMSSE": 3.65,
-            "NRMSE": 1.30,
-            "WAPE": 86.28,
-            "SWAPE": 144.24,
-            "PBIAS": 86.28
-        },
         "account_type": {
             "fixed_expenses": { ... },
             "revenue": { ... },
@@ -425,9 +416,6 @@ actual_df["resultat"] = (
     actual_df.loc[:, actual_df.columns.str.startswith("7")].sum(axis=1) -
     actual_df.loc[:, actual_df.columns.str.startswith("6")].sum(axis=1)
 )
-
-# Total activity = sum of all accounts
-actual_df["total_activity"] = actual_df.sum(axis=1)
 
 # Group by account type
 for acc_type, accounts in account_types.items():

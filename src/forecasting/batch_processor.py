@@ -15,7 +15,11 @@ from src.data.fec_loader import load_fecs
 from src.data.account_classifier import load_classification_charges
 from src.data.preprocessing import fec_to_monthly_totals, preprocess_data
 from src.forecasting.tabpfn_forecaster import TabPFNForecaster
-from src.forecasting.result_saver import save_forecast_result, update_company_metadata
+from src.forecasting.result_saver import (
+    save_forecast_result,
+    save_forecast_result_with_ci,
+    update_company_metadata,
+)
 from src.forecasting.company_discovery import get_company_info
 
 
@@ -114,13 +118,26 @@ class BatchProcessor:
             # Generate process ID
             process_id = str(uuid.uuid4())
             
-            # Save results
-            save_forecast_result(
-                forecast_df=forecast_result.forecast_df,
-                company_id=company_id,
-                process_id=process_id,
-                data_folder=self.data_folder
-            )
+            # Save results (with CI if available)
+            if (
+                forecast_result.forecast_lower_df is not None
+                and forecast_result.forecast_upper_df is not None
+            ):
+                save_forecast_result_with_ci(
+                    median_df=forecast_result.forecast_df,
+                    lower_df=forecast_result.forecast_lower_df,
+                    upper_df=forecast_result.forecast_upper_df,
+                    company_id=company_id,
+                    process_id=process_id,
+                    data_folder=self.data_folder
+                )
+            else:
+                save_forecast_result(
+                    forecast_df=forecast_result.forecast_df,
+                    company_id=company_id,
+                    process_id=process_id,
+                    data_folder=self.data_folder
+                )
             
             # Prepare account metadata
             account_metadata = {}

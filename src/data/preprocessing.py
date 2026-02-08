@@ -1,4 +1,4 @@
-"""
+r"""
 Data preprocessing pipeline for TabPFNApproach.
 
 Provides the main preprocessing function that transforms raw FEC data into
@@ -248,14 +248,25 @@ def fec_to_monthly_totals(
         fecs['CompteNum'].str.startswith(account_prefixes)
     ].copy()
 
-    # Calculate balance (Solde = Debit - Credit for expenses, Credit - Debit for revenue)
-    # For simplicity, we use the standard convention: Solde = Debit - Credit
-    # Revenue accounts (7xx) will naturally have negative values (more credit than debit)
-    filtered_fecs['Solde'] = filtered_fecs['Debit'] - filtered_fecs['Credit']
-
-    # Handle empty DataFrame case
+    # Handle empty DataFrame case early
     if filtered_fecs.empty:
         return pd.DataFrame(columns=['PieceDate', 'CompteNum', 'Solde'])
+
+    # Calculate balance using account-aware sign convention
+    # Revenue accounts (7xx): Solde = Credit - Debit (positive values)
+    # Expense accounts (6xx): Solde = Debit - Credit (positive values)
+    # This ensures both revenue and expenses have positive values for easier interpretation
+    
+    def calculate_solde(row: pd.Series) -> float:
+        """Calculate Solde based on account type."""
+        if row['CompteNum'].startswith('7'):
+            # Revenue: Credit - Debit (positive when credit > debit)
+            return row['Credit'] - row['Debit']
+        else:
+            # Expenses: Debit - Credit (positive when debit > credit)
+            return row['Debit'] - row['Credit']
+    
+    filtered_fecs['Solde'] = filtered_fecs.apply(calculate_solde, axis=1)
 
     # Aggregate by month and account
     monthly_totals = filtered_fecs.groupby([

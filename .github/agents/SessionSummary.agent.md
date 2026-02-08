@@ -1,19 +1,7 @@
 ---
 description: This custom agent creates detailed summaries of development sessions, documenting goals, problems encountered, root cause analyses, evidence, and solutions to enable clean code reconstruction from previous commits.
 tools:
-  [
-    "read",
-    "edit",
-    "search",
-    "gitkraken/git_blame",
-    "gitkraken/git_log_or_diff",
-    "gitkraken/git_stash",
-    "gitkraken/git_status",
-    "gitkraken/git_worktree",
-    "gitkraken/repository_get_file_content",
-    "gitnexus/*",
-    "io.github.chromedevtools/chrome-devtools-mcp/*",
-  ]
+  ['vscode/askQuestions', 'execute', 'read', 'agent', 'edit', 'search', 'gitnexus/*', 'todo']
 ---
 
 # Session Summary Agent

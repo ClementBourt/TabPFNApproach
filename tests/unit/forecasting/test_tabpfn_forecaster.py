@@ -61,9 +61,13 @@ def test_forecast_returns_forecast_result(mock_pipeline_class, sample_wide_forma
     
     # Create mock TabPFN output
     forecast_dates = pd.date_range('2025-01-01', periods=12, freq='MS')
+    target_values = [3400.0 + i * 100 for i in range(12)] + [1700.0 + i * 50 for i in range(12)]
     mock_output = pd.DataFrame({
         'timestamp': forecast_dates.tolist() * 2,
-        'target': [3400.0 + i * 100 for i in range(12)] + [1700.0 + i * 50 for i in range(12)],
+        'target': target_values,
+        0.1: [value - 50.0 for value in target_values],
+        0.5: target_values,
+        0.9: [value + 50.0 for value in target_values],
         'item_id': ['707000'] * 12 + ['601000'] * 12
     })
     mock_pipeline.predict_df.return_value = mock_output
@@ -75,6 +79,8 @@ def test_forecast_returns_forecast_result(mock_pipeline_class, sample_wide_forma
     assert isinstance(result, ForecastResult)
     assert result.forecast_df is not None
     assert result.accounts == ['707000', '601000']
+    assert result.forecast_lower_df is not None
+    assert result.forecast_upper_df is not None
     assert result.prediction_length == 12
 
 
@@ -87,9 +93,13 @@ def test_forecast_produces_correct_shape(mock_pipeline_class, sample_wide_format
     
     # Create mock TabPFN output
     forecast_dates = pd.date_range('2025-01-01', periods=12, freq='MS')
+    target_values = [3400.0 + i * 100 for i in range(12)] + [1700.0 + i * 50 for i in range(12)]
     mock_output = pd.DataFrame({
         'timestamp': forecast_dates.tolist() * 2,
-        'target': [3400.0 + i * 100 for i in range(12)] + [1700.0 + i * 50 for i in range(12)],
+        'target': target_values,
+        0.1: [value - 50.0 for value in target_values],
+        0.5: target_values,
+        0.9: [value + 50.0 for value in target_values],
         'item_id': ['707000'] * 12 + ['601000'] * 12
     })
     mock_pipeline.predict_df.return_value = mock_output
@@ -114,9 +124,13 @@ def test_forecast_handles_single_account(mock_pipeline_class, sample_wide_format
     
     # Create mock TabPFN output
     forecast_dates = pd.date_range('2025-01-01', periods=12, freq='MS')
+    target_values = [3400.0 + i * 100 for i in range(12)]
     mock_output = pd.DataFrame({
         'timestamp': forecast_dates,
-        'target': [3400.0 + i * 100 for i in range(12)],
+        'target': target_values,
+        0.1: [value - 50.0 for value in target_values],
+        0.5: target_values,
+        0.9: [value + 50.0 for value in target_values],
         'item_id': '707000'
     })
     mock_pipeline.predict_df.return_value = mock_output
@@ -139,9 +153,13 @@ def test_forecast_timing_metrics(mock_pipeline_class, sample_wide_format_df):
     
     # Create mock TabPFN output
     forecast_dates = pd.date_range('2025-01-01', periods=12, freq='MS')
+    target_values = [3400.0 + i * 100 for i in range(12)] + [1700.0 + i * 50 for i in range(12)]
     mock_output = pd.DataFrame({
         'timestamp': forecast_dates.tolist() * 2,
-        'target': [3400.0 + i * 100 for i in range(12)] + [1700.0 + i * 50 for i in range(12)],
+        'target': target_values,
+        0.1: [value - 50.0 for value in target_values],
+        0.5: target_values,
+        0.9: [value + 50.0 for value in target_values],
         'item_id': ['707000'] * 12 + ['601000'] * 12
     })
     mock_pipeline.predict_df.return_value = mock_output
@@ -163,9 +181,13 @@ def test_forecast_with_custom_quantiles(mock_pipeline_class, sample_wide_format_
     
     # Create mock TabPFN output
     forecast_dates = pd.date_range('2025-01-01', periods=12, freq='MS')
+    target_values = [3400.0 + i * 100 for i in range(12)] + [1700.0 + i * 50 for i in range(12)]
     mock_output = pd.DataFrame({
         'timestamp': forecast_dates.tolist() * 2,
-        'target': [3400.0 + i * 100 for i in range(12)] + [1700.0 + i * 50 for i in range(12)],
+        'target': target_values,
+        0.1: [value - 50.0 for value in target_values],
+        0.5: target_values,
+        0.9: [value + 50.0 for value in target_values],
         'item_id': ['707000'] * 12 + ['601000'] * 12
     })
     mock_pipeline.predict_df.return_value = mock_output
@@ -195,13 +217,21 @@ def test_forecast_handles_multiindex_output(mock_pipeline_class, sample_wide_for
     forecast_dates = pd.date_range('2025-01-01', periods=12, freq='MS')
     
     # Create MultiIndex DataFrame (item_id, timestamp)
+    target_values_707 = [3400.0 + i * 100 for i in range(12)]
     data_707 = pd.DataFrame({
-        'target': [3400.0 + i * 100 for i in range(12)],
+        'target': target_values_707,
+        0.1: [value - 50.0 for value in target_values_707],
+        0.5: target_values_707,
+        0.9: [value + 50.0 for value in target_values_707],
     }, index=pd.MultiIndex.from_product([['707000'], forecast_dates], 
                                         names=['item_id', 'timestamp']))
     
+    target_values_601 = [1700.0 + i * 50 for i in range(12)]
     data_601 = pd.DataFrame({
-        'target': [1700.0 + i * 50 for i in range(12)],
+        'target': target_values_601,
+        0.1: [value - 50.0 for value in target_values_601],
+        0.5: target_values_601,
+        0.9: [value + 50.0 for value in target_values_601],
     }, index=pd.MultiIndex.from_product([['601000'], forecast_dates], 
                                         names=['item_id', 'timestamp']))
     
@@ -227,6 +257,8 @@ def test_forecast_result_attributes():
     
     result = ForecastResult(
         forecast_df=forecast_df,
+        forecast_lower_df=forecast_df - 50.0,
+        forecast_upper_df=forecast_df + 50.0,
         accounts=['707000', '601000'],
         prediction_length=12,
         elapsed_time=10.5
@@ -236,3 +268,5 @@ def test_forecast_result_attributes():
     assert result.accounts == ['707000', '601000']
     assert result.prediction_length == 12
     assert result.elapsed_time == 10.5
+    assert result.forecast_lower_df is not None
+    assert result.forecast_upper_df is not None

@@ -395,16 +395,68 @@ def test_fec_to_monthly_totals_groups_by_account(sample_formatted_fecs):
 
 
 def test_fec_to_monthly_totals_calculates_solde_correctly(sample_formatted_fecs):
-    """Test that Solde is calculated as Debit - Credit."""
+    """
+    Test that Solde is calculated with account-aware sign convention.
+    
+    Revenue accounts (7xx): Solde = Credit - Debit (should be positive)
+    Expense accounts (6xx): Solde = Debit - Credit (should be positive)
+    """
     result = fec_to_monthly_totals(sample_formatted_fecs)
     
-    # Revenue accounts should have negative solde (Credit > Debit)
+    # Revenue accounts (7xx) should have POSITIVE solde (Credit > Debit, so Credit - Debit > 0)
     revenue_solde = result[result['CompteNum'] == '707000']['Solde']
-    assert (revenue_solde < 0).all()
+    assert (revenue_solde > 0).all(), "Revenue accounts (7xx) should have positive values"
     
-    # Expense accounts should have positive solde (Debit > Credit)
+    # Expense accounts (6xx) should have POSITIVE solde (Debit > Credit, so Debit - Credit > 0)
     expense_solde = result[result['CompteNum'] == '601000']['Solde']
-    assert (expense_solde > 0).all()
+    assert (expense_solde > 0).all(), "Expense accounts (6xx) should have positive values"
+
+
+def test_fec_to_monthly_totals_sign_convention_various_accounts():
+    """
+    Test sign convention for various specific revenue and expense accounts.
+    
+    This ensures that different revenue accounts (707, 708, etc.) and 
+    expense accounts (601, 602, 611, etc.) all follow the correct sign convention.
+    """
+    # Create test data with various account types
+    test_data = []
+    base_date = pd.Timestamp('2023-01-15')
+    
+    # Revenue accounts (7xx) - Credit entries should result in positive values
+    revenue_accounts = ['707000', '707010', '708000', '709000']
+    for account in revenue_accounts:
+        test_data.append({
+            'PieceDate': base_date,
+            'CompteNum': account,
+            'Debit': 0.0,
+            'Credit': 1000.0
+        })
+    
+    # Expense accounts (6xx) - Debit entries should result in positive values
+    expense_accounts = ['601000', '602000', '606000', '611000', '613000']
+    for account in expense_accounts:
+        test_data.append({
+            'PieceDate': base_date,
+            'CompteNum': account,
+            'Debit': 500.0,
+            'Credit': 0.0
+        })
+    
+    test_fecs = pd.DataFrame(test_data)
+    result = fec_to_monthly_totals(test_fecs)
+    
+    # All revenue accounts should have positive values
+    for account in revenue_accounts:
+        account_solde = result[result['CompteNum'] == account]['Solde'].iloc[0]
+        assert account_solde > 0, f"Revenue account {account} should have positive value, got {account_solde}"
+        assert account_solde == 1000.0, f"Revenue account {account} should equal 1000.0, got {account_solde}"
+    
+    # All expense accounts should have positive values
+    for account in expense_accounts:
+        account_solde = result[result['CompteNum'] == account]['Solde'].iloc[0]
+        assert account_solde > 0, f"Expense account {account} should have positive value, got {account_solde}"
+        assert account_solde == 500.0, f"Expense account {account} should equal 500.0, got {account_solde}"
 
 
 def test_fec_to_monthly_totals_filters_by_prefix(sample_formatted_fecs):

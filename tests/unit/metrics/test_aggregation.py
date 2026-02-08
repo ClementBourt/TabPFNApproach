@@ -7,7 +7,6 @@ import pytest
 
 from src.metrics.aggregation import (
     compute_net_income_series,
-    compute_total_activity_series,
     aggregate_by_account_type,
     compute_aggregated_metrics,
 )
@@ -91,31 +90,6 @@ def test_compute_net_income_series_empty():
 
 
 # ============================================================================
-# TOTAL ACTIVITY TESTS
-# ============================================================================
-
-def test_compute_total_activity_series_basic(sample_data_df):
-    """Test total activity computation."""
-    total = compute_total_activity_series(sample_data_df)
-    
-    assert isinstance(total, pd.Series)
-    assert len(total) == 3
-    
-    # Total = sum of all accounts
-    # First period: 1000 + 500 + 300 + 200 = 2000
-    assert total.iloc[0] == 2000.0
-
-
-def test_compute_total_activity_series_single_account():
-    """Test total activity with single account."""
-    data = pd.DataFrame({'707000': [1000.0, 1100.0]})
-    
-    total = compute_total_activity_series(data)
-    
-    assert total.iloc[0] == 1000.0
-
-
-# ============================================================================
 # AGGREGATE BY ACCOUNT TYPE TESTS
 # ============================================================================
 
@@ -188,7 +162,6 @@ def test_compute_aggregated_metrics_structure(sample_data_df, account_metadata):
     
     assert isinstance(agg_metrics, dict)
     assert 'net_income' in agg_metrics
-    assert 'total_activity' in agg_metrics
     assert 'account_type' in agg_metrics
     assert 'forecast_type' in agg_metrics
 

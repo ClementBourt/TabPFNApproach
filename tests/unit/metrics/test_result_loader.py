@@ -14,6 +14,7 @@ import pytest
 from src.metrics.result_loader import (
     is_likely_base64,
     load_gather_result,
+    load_confidence_intervals,
 )
 
 
@@ -197,3 +198,32 @@ def test_load_gather_result_with_string_path(csv_format_file):
     df = load_gather_result(str(csv_format_file))
     
     assert isinstance(df, pd.DataFrame)
+
+
+def test_load_confidence_intervals_returns_dataframes(tmp_path, sample_forecast_df):
+    """Test loading lower and upper confidence interval files."""
+    process_folder = tmp_path / "process"
+    process_folder.mkdir(parents=True, exist_ok=True)
+    lower_path = process_folder / "gather_result_lower"
+    upper_path = process_folder / "gather_result_upper"
+
+    sample_forecast_df.to_csv(lower_path)
+    sample_forecast_df.to_csv(upper_path)
+
+    lower_df, upper_df = load_confidence_intervals(process_folder)
+
+    assert lower_df is not None
+    assert upper_df is not None
+    pd.testing.assert_frame_equal(lower_df, sample_forecast_df, check_freq=False)
+    pd.testing.assert_frame_equal(upper_df, sample_forecast_df, check_freq=False)
+
+
+def test_load_confidence_intervals_handles_missing_files(tmp_path):
+    """Test that missing CI files return None values."""
+    process_folder = tmp_path / "process"
+    process_folder.mkdir(parents=True, exist_ok=True)
+
+    lower_df, upper_df = load_confidence_intervals(process_folder)
+
+    assert lower_df is None
+    assert upper_df is None

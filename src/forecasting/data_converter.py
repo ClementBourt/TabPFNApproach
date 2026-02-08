@@ -145,3 +145,134 @@ def tabpfn_output_to_wide_format(
     wide_df.columns.name = None
     
     return wide_df
+
+
+def extract_quantiles_from_tabpfn_output(
+    tabpfn_output: pd.DataFrame,
+    accounts: List[str]
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """
+    Extract quantile columns from TabPFN output into separate DataFrames.
+    
+    Extracts the 0.1 (lower), 0.5 (median), and 0.9 (upper) quantile forecasts
+    from TabPFN's output and returns them as three separate wide-format DataFrames
+    compatible with the gather_result format.
+    
+    Parameters
+    ----------
+    tabpfn_output : pd.DataFrame
+        TabPFN output DataFrame with MultiIndex (item_id, timestamp) and columns:
+        - target: float - Median forecast (same as 0.5 quantile)
+        - 0.1 / '0.1' / 'q_0.1' / 'quantile_0.1': Lower bound (10th percentile)
+        - 0.5 / '0.5' / 'q_0.5' / 'quantile_0.5': Median (50th percentile)
+        - 0.9 / '0.9' / 'q_0.9' / 'quantile_0.9': Upper bound (90th percentile)
+    accounts : List[str]
+        List of account numbers to include as columns in the output.
+        This ensures consistent column ordering.
+    
+    Returns
+    -------
+    tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
+        Three wide-format DataFrames (median, lower, upper) with:
+        - Index: DatetimeIndex (timestamps) named 'ds'
+        - Columns: Account numbers (in the order specified by accounts parameter)
+        - Values: Forecasted amounts for each quantile
+    
+    Examples
+    --------
+    >>> dates = pd.date_range('2024-01-01', periods=3, freq='MS')
+    >>> data = pd.DataFrame({
+    ...     'target': [100, 110, 120],
+    ...     0.1: [90, 100, 110],
+    ...     0.5: [100, 110, 120],
+    ...     0.9: [110, 120, 130]
+    ... }, index=pd.MultiIndex.from_product([['707000'], dates], 
+    ...                                     names=['item_id', 'timestamp']))
+    >>> median_df, lower_df, upper_df = extract_quantiles_from_tabpfn_output(
+    ...     data, ['707000']
+    ... )
+    >>> median_df.shape
+    (3, 1)
+    >>> lower_df.iloc[0, 0]
+    90.0
+    """
+    # Handle MultiIndex case
+    if isinstance(tabpfn_output.index, pd.MultiIndex):
+        df = tabpfn_output.reset_index()
+    else:
+        df = tabpfn_output.copy()
+    
+    def resolve_quantile_column(columns: pd.Index, quantile: float) -> str | float:
+        """
+        Resolve the column name for a quantile value.
+
+        Parameters
+        ----------
+        columns : pd.Index
+            Available column names.
+        quantile : float
+            Quantile value to resolve.
+
+        Returns
+        -------
+        str | float
+            Column name/key for the quantile.
+
+        Raises
+        ------
+        KeyError
+            If no matching column is found.
+        """
+        if quantile in columns:
+            return quantile
+
+        quantile_str = str(quantile)
+        candidates = [
+            quantile_str,
+            f"q_{quantile_str}",
+            f"quantile_{quantile_str}",
+            f"q{quantile_str}",
+            f"quantile{quantile_str}",
+        ]
+
+        for candidate in candidates:
+            if candidate in columns:
+                return candidate
+
+        raise KeyError(f"Quantile column not found for {quantile}")
+
+    # Extract median (use 'target' column which is the median forecast)
+    median_pivot = df.pivot(
+        index='timestamp',
+        columns='item_id',
+        values='target'
+    )
+    median_pivot = median_pivot[accounts]
+    median_pivot.index.name = 'ds'
+    median_pivot.columns.name = None
+    
+    lower_col = resolve_quantile_column(df.columns, 0.1)
+    upper_col = resolve_quantile_column(df.columns, 0.9)
+
+    # Extract lower bound (0.1 quantile)
+    lower_pivot = df.pivot(
+        index='timestamp',
+        columns='item_id',
+        values=lower_col
+    )
+    lower_pivot = lower_pivot[accounts]
+    lower_pivot.index.name = 'ds'
+    lower_pivot.columns.name = None
+    
+    # Extract upper bound (0.9 quantile)
+    upper_pivot = df.pivot(
+        index='timestamp',
+        columns='item_id',
+        values=upper_col
+    )
+    upper_pivot = upper_pivot[accounts]
+    upper_pivot.index.name = 'ds'
+    upper_pivot.columns.name = None
+    
+    return median_pivot, lower_pivot, upper_pivot
+

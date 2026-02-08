@@ -123,7 +123,7 @@ def calculate_forecast(data: pd.DataFrame, periods: int) -> pd.DataFrame:
 
 ### GitNexus MCP Server
 
-Use the GitNexus MCP server to explore and understand the ProphetApproach codebase:
+When it is up and running, use the GitNexus MCP server to explore and understand the ProphetApproach codebase:
 
 - **Priority:** Use MCP server before directly reading code base files
 - **Use cases:** Understanding code structure, finding implementations, exploring dependencies, helping you understand what code to reuse.
@@ -134,4 +134,42 @@ Use the GitNexus MCP server to explore and understand the ProphetApproach codeba
 
 > **When in doubt, ask.** Always request clarification before proceeding if requirements are unclear.
 
+## Specific instructions
+ - Do not ever use `python` or `python3` commands. Always use `uv run` for executing Python scripts and modules.
+ - For testing, always use `uv run pytest` instead of `pytest` directly.
+ - When running tests, always include `--deselect tests/unit/forecasting/test_tabpfn_forecaster.py::test_tabpfn_forecaster_initialization_with_client_mode` to avoid the hanging client-mode test.
+ - For running any script, use `uv run <script_name.py>` instead of `python <script_name.py>`.
+ - Do not ever send processes in the back ground using `&` or similar. Always run processes in the foreground to ensure proper logging and error handling.
 
+## Visualization Guidelines
+
+### Centralize UI Strings
+
+- Never hardcode user-facing text in component files
+- Create a single source of truth (e.g., `translations.py`)
+- Use constants that clearly indicate their purpose
+
+### Language Consistency
+
+- If the UI is in French, ALL user-facing text must be French
+- Never mix languages (e.g., avoid hardcoding "Metrics Comparison" in English)
+- Keep internal keys/variables in English for stability (e.g., `net_income` as key, "Résultat net" as display)
+
+### Capitalization Rules by Language
+
+**French:** Use sentence case, not title case
+- ✅ "Sélectionner un compte ou une vue agrégée"
+- ❌ "Sélectionner un Compte ou une Vue Agrégée"
+
+**English:** Use title case for headers
+- ✅ "Select an Account or Aggregated View"
+
+### Dropdown Menu Best Practices
+
+**Avoid visual noise:**
+- No emoji in professional financial/business dashboards
+- No redundant prefixes ("Compte 12345" → just "12345" in the dropdown)
+- Save descriptive labels for titles/headers, not every option
+
+**Dropdown structure:**
+Use headers for grouping, not prefixes on items:

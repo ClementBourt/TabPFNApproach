@@ -184,7 +184,6 @@ def test_compute_metrics_for_company_aggregated_metrics(mock_company_folder):
     
     # Should have all aggregation levels
     assert 'net_income' in agg_metrics
-    assert 'total_activity' in agg_metrics
     assert 'account_type' in agg_metrics
     assert 'forecast_type' in agg_metrics
 

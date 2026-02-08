@@ -1,0 +1,101 @@
+feat: Dashboard, CI pipeline, sign convention fix, French UI, and FirstTry→ProphetWorkflow rename
+
+## TLDR
+
+Built the complete Dash visualization dashboard with French UI, implemented confidence interval (CI) support end-to-end in the TabPFN forecasting pipeline, fixed the revenue sign convention bug in preprocessing, renamed "FirstTry" to "ProphetWorkflow" across all 73 company.json files, and extended the metrics pipeline. All 197 tests pass. Two new TabPFN forecasts for RESTO-1 were generated (one with sign fix, one with CI data).
+
+**Note:** This commit may serve as a backup/snapshot before the next commit, which will likely involve a significant code refactoring pass. This is not certain yet, but there is a good chance the codebase will be restructured, so this commit preserves the current working state as a safe rollback point.
+
+---
+
+## Session-by-Session Breakdown
+
+### Session 1 — 2026-02-07 11:20–11:45 — Rename "FirstTry" to "ProphetWorkflow"
+Step 1 of the Dashboard Iterative Improvements Plan.
+
+- Created migration script `scripts/rename_firsttry.py` to batch-rename across 73 company.json files
+- Changed `version_name` and `description` fields from "FirstTry" to "ProphetWorkflow" in all company data
+- Updated docstring in `src/visualization/data_loader.py` and `DASHBOARD_IMPLEMENTATION.md`
+- Added 2 regression tests in `tests/unit/visualization/test_data_loader.py`
+- Side effect: `json.dump` with `ensure_ascii=False` converted `\uXXXX` escapes to literal UTF-8 (semantically identical, more readable for French account names)
+
+### Session 2 — 2026-02-07 11:50–13:23 — Fix Account Sign Convention
+Step 2 of the Dashboard Iterative Improvements Plan.
+
+- **Bug:** `fec_to_monthly_totals()` applied `Debit - Credit` to all accounts — revenue accounts (7xx) should use `Credit - Debit`
+- **Fix:** Added account-aware `calculate_solde()` inside `src/data/preprocessing.py`
+- Updated and added tests in `tests/unit/data/test_preprocessing.py`
+- Re-ran TabPFN forecast for RESTO-1 → process_id `42f3aab4-35fe-42ff-a88a-f7b3083cd32f` (70 accounts, 503.6s)
+- **Incident:** A migration script `scripts/migrate_sign_convention.py` was mistakenly created to "fix" Prophet data too, but Prophet data was already correct. The script corrupted Prophet gather_result files. Caught and fully cleaned up — all corrupted files deleted, script removed. Lesson: never modify Prophet data.
+
+### Session 3 — 2026-02-07 16:30–18:30 — Add Confidence Intervals
+Step 3 of the Dashboard Iterative Improvements Plan.
+
+- TabPFN already produced quantile forecasts (0.1, 0.5, 0.9) but the pipeline discarded them
+- Added `extract_quantiles_from_tabpfn_output()` in `src/forecasting/data_converter.py`
+- Extended `ForecastResult` dataclass with `forecast_lower_df` and `forecast_upper_df`
+- Modified `src/forecasting/batch_processor.py` to conditionally use `save_forecast_result_with_ci()`
+- Extended `src/forecasting/result_saver.py` with CI file saving (gather_result_lower, gather_result_upper)
+- Extended `src/metrics/result_loader.py` with `load_confidence_intervals()` function
+- Re-ran TabPFN for RESTO-1 → process_id `f83f2ed0-6955-4fa8-8af2-e334cdac9cd1` with CI bands
+- Dashboard renders 80% CI bands on the time series chart
+- Updated tests across forecasting and metrics modules
+
+### Session 4 — 2026-02-07 18:30–19:50 — Translate Dashboard to French
+Step 4 of the Dashboard Iterative Improvements Plan.
+
+- Created `src/visualization/translations.py` — centralized French translations module (106 lines)
+- All UI text translated to French (titles, labels, error messages, dropdown items, hover templates, metric headers)
+- Kept English for: "Forecast", "TabPFN", "ProphetWorkflow", metric acronyms (MAPE, SMAPE, etc.), "Dash"
+- Decoupled internal aggregation keys (English) from display labels (French) via `AGG_LABELS` dictionary
+- Modified: `app.py`, `layouts.py`, `callbacks.py`, `data_loader.py`, `time_series_chart.py`, `metrics_table.py`
+- Updated 6 tests in `tests/unit/visualization/test_data_loader.py`
+
+### Dashboard Implementation (spanning sessions)
+
+Built the complete visualization dashboard from scratch:
+- `src/visualization/app.py` — Dash application factory
+- `src/visualization/layouts.py` — Dashboard layout with company/view selectors
+- `src/visualization/callbacks.py` — Interactive callbacks for chart/table updates
+- `src/visualization/data_loader.py` — Data loading from company.json and gather_result files
+- `src/visualization/components/time_series_chart.py` — Plotly time series chart with CI bands
+- `src/visualization/components/metrics_table.py` — Metrics comparison table
+- `src/visualization/translations.py` — Centralized French UI strings
+- `src/visualization/cli.py` — CLI entry point
+- `tests/unit/visualization/test_components.py` — 13 component tests
+- `tests/unit/visualization/test_data_loader.py` — 13 data loader tests
+- Created `DASHBOARD_IMPLEMENTATION.md` and `DASHBOARD_README.md` documentation
+
+### Metrics Pipeline Enhancements
+
+- Extended `src/metrics/aggregation.py` — removed `total_activity` aggregation
+- Updated `src/metrics/result_loader.py` — added CI loading support
+- Updated `src/metrics/cli.py`
+- Created `scripts/remove_total_activity_from_json.py` cleanup script
+- Updated tests: `test_aggregation.py`, `test_result_loader.py`, `test_pipeline.py`
+
+### Infrastructure
+
+- Added `.gitignore` (was empty, now excludes __pycache__, .venv, .pyc, etc.)
+- Created `scripts/` directory with utility scripts (rename, rerun, investigation)
+- Added test data directories: `data/TEST-COMPANY/`, `data/TEST-COMPANY-1/`, `data/TEST-COMPANY-2/`
+- Updated `pyproject.toml` and `uv.lock` with new dependencies
+- Updated `.github/copilot-instructions.md` with visualization guidelines
+- Added 4 new session summaries in `.github/session-summaries/`
+- Created `.github/Dashboard Iterative Improvements Plan .prompt.md`
+
+---
+
+## Files Changed Summary
+
+- **73 company.json** files: FirstTry→ProphetWorkflow rename + UTF-8 normalization
+- **src/data/preprocessing.py**: Sign convention fix for revenue accounts
+- **src/forecasting/**: data_converter, tabpfn_forecaster, batch_processor, result_saver — CI support
+- **src/metrics/**: aggregation, result_loader, cli — CI loading + total_activity removal
+- **src/visualization/**: Complete new module (10 files) — Dash dashboard with French UI
+- **tests/**: Updated and new tests across data, forecasting, metrics, visualization
+- **New RESTO-1 forecasts**: 2 new process IDs with corrected signs and CI data
+
+## Test Status
+
+197 passed, 1 deselected (client-mode test skipped to avoid hang), 2 warnings

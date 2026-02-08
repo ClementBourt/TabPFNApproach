@@ -11,6 +11,9 @@ dependencies = [
     "gluonts>=0.16.0",
     "statsmodels>=0.14.5",
     "rich>=13.0.0",
+    "dash>=2.14.0",
+    "dash-bootstrap-components>=1.5.0",
+    "plotly>=5.18.0",
 ]
 
 [project.optional-dependencies]

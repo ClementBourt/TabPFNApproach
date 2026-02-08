@@ -1,7 +1,7 @@
 """
 Metrics aggregation logic.
 
-Aggregates account-level metrics by net income, total activity,
+Aggregates account-level metrics by net income,
 account type, and forecast type.
 """
 
@@ -47,33 +47,6 @@ def compute_net_income_series(df: pd.DataFrame) -> pd.Series:
     expenses = df[expense_cols].sum(axis=1) if expense_cols else 0
     
     return revenue - expenses
-
-
-def compute_total_activity_series(df: pd.DataFrame) -> pd.Series:
-    """
-    Compute total activity (sum of all accounts) for each time period.
-    
-    Parameters
-    ----------
-    df : pd.DataFrame
-        DataFrame with accounts as columns and dates as index.
-    
-    Returns
-    -------
-    pd.Series
-        Total activity per time period.
-    
-    Examples
-    --------
-    >>> data = pd.DataFrame({
-    ...     '707000': [1000, 1100],
-    ...     '601000': [500, 550]
-    ... })
-    >>> total = compute_total_activity_series(data)
-    >>> total.iloc[0]
-    1500.0
-    """
-    return df.sum(axis=1)
 
 
 def aggregate_by_account_type(
@@ -132,7 +105,7 @@ def compute_aggregated_metrics(
     account_metadata: Dict[str, Dict[str, str]]
 ) -> Dict[str, Any]:
     """
-    Compute aggregated metrics for net_income, total_activity, and by type.
+    Compute aggregated metrics for net_income and by type.
     
     Parameters
     ----------
@@ -151,7 +124,6 @@ def compute_aggregated_metrics(
         Nested dictionary with structure:
         {
             'net_income': {metric_name: value, ...},
-            'total_activity': {metric_name: value, ...},
             'account_type': {
                 type_name: {metric_name: value, ...},
                 ...
@@ -192,22 +164,7 @@ def compute_aggregated_metrics(
         for metric, values in net_income_metrics.items()
     }
     
-    # 2. Total activity metrics
-    actual_total = compute_total_activity_series(actual_df).to_frame('total_activity')
-    forecast_total = compute_total_activity_series(forecast_df).to_frame('total_activity')
-    naive_total = compute_total_activity_series(seasonal_naive_df).to_frame('total_activity')
-    
-    total_activity_metrics = compute_all_metrics(
-        actual_total,
-        forecast_total,
-        naive_total
-    )
-    result['total_activity'] = {
-        metric: float(values['total_activity']) if not pd.isna(values['total_activity']) else None
-        for metric, values in total_activity_metrics.items()
-    }
-    
-    # 3. Metrics by account type
+    # 2. Metrics by account type
     actual_by_type = aggregate_by_account_type(actual_df, account_metadata)
     forecast_by_type = aggregate_by_account_type(forecast_df, account_metadata)
     naive_by_type = aggregate_by_account_type(seasonal_naive_df, account_metadata)
@@ -228,7 +185,7 @@ def compute_aggregated_metrics(
             for metric, values in type_metrics.items()
         }
     
-    # 4. Metrics by forecast type
+    # 3. Metrics by forecast type
     # Group accounts by forecast_type
     accounts_by_forecast_type = {}
     for account, meta in account_metadata.items():
